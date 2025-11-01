@@ -40,6 +40,7 @@ public final class MusicConstants {
     public static final String MSG_QUEUE_TITLE = "🎶 Cola de Reproducción";
     public static final String MSG_QUEUE_EMPTY = "La cola de reproducción está vacía.";
     public static final String MSG_QUEUE_NEXT_UP = "A continuación:";
+    public static final String MSG_QUEUE_FOOTER = "Página %d / %d (%d canciones en total)";
 
 
 }

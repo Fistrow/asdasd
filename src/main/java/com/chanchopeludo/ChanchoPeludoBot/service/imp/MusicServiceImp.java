@@ -13,10 +13,14 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import jakarta.annotation.PostConstruct;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,12 +28,15 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
+import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildQueueEmbed;
 
 @Service
 public class MusicServiceImp implements MusicService {
@@ -267,42 +274,63 @@ public class MusicServiceImp implements MusicService {
     @Override
     public void showQueue(MessageReceivedEvent event) {
         GuildMusicManager musicManager = getGuildAudioPlayer(event.getGuild());
-        BlockingQueue<AudioTrack> queue = musicManager.getScheduler().getQueue();
+        TrackScheduler scheduler = musicManager.getScheduler();
         AudioTrack currentTrack = musicManager.getPlayer().getPlayingTrack();
 
-        if (queue.isEmpty() && currentTrack == null) {
+        if (scheduler.getQueue().isEmpty() && currentTrack == null) {
             event.getChannel().sendMessage(MSG_QUEUE_EMPTY).queue();
             return;
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("**").append(MSG_QUEUE_TITLE).append("**\n\n");
+        List<AudioTrack> queueList = new ArrayList<>(scheduler.getQueue());
 
-        if (currentTrack != null && currentTrack.getUserData() instanceof VideoInfo) {
-            VideoInfo info = (VideoInfo) currentTrack.getUserData();
-            sb.append(MSG_NOW_PLAYING).append("`").append(info.title()).append("`\n\n");
-        } else if (currentTrack != null) {
-            sb.append(MSG_NOW_PLAYING).append("`").append(currentTrack.getInfo().title).append("`\n\n");
+        int itemsPerPage = 10;
+        int totalPages = (int) Math.ceil((double) queueList.size() / itemsPerPage);
+        if (totalPages == 0) totalPages = 1;
+
+        MessageEmbed embed = buildQueueEmbed(currentTrack, queueList, 1, totalPages, itemsPerPage);
+
+        Button prevButton = Button.primary("queue:prev:1", "Anterior").withDisabled(true);
+        Button nextButton = Button.primary("queue:next:1", "Siguiente").withDisabled(totalPages <= 1);
+
+        event.getChannel().sendMessageEmbeds(embed)
+                .setActionRow(prevButton, nextButton)
+                .queue();
+    }
+
+    @Override
+    public void handleQueueButton(ButtonInteractionEvent event) {
+        String[] idParts = event.getComponentId().split(":");
+
+        String action = idParts[1]; // "prev" o "next"
+        int currentPage = Integer.parseInt(idParts[2]);
+
+        GuildMusicManager musicManager = getGuildAudioPlayer(event.getGuild());
+        TrackScheduler scheduler = musicManager.getScheduler();
+        List<AudioTrack> queueList = new ArrayList<>(scheduler.getQueue());
+        AudioTrack playingTrack = musicManager.getPlayer().getPlayingTrack();
+
+        int itemsPerPage = 10;
+        int totalPages = (int) Math.ceil((double) queueList.size() / itemsPerPage);
+        if (totalPages == 0) totalPages = 1;
+
+        int newPage = currentPage;
+        if (action.equals("next")) {
+            newPage = Math.min(currentPage + 1, totalPages);
+        } else if (action.equals("prev")) {
+            newPage = Math.max(currentPage - 1, 1);
         }
 
-        if (!queue.isEmpty()) {
-            sb.append(MSG_QUEUE_NEXT_UP).append("\n");
-            int count = 1;
-            for (AudioTrack track : queue) {
-                if (count > 10) break;
+        MessageEmbed newEmbed = buildQueueEmbed(playingTrack, queueList, newPage, totalPages, itemsPerPage);
 
-                if (track.getUserData() instanceof VideoInfo) {
-                    VideoInfo info = (VideoInfo) track.getUserData();
-                    sb.append("`").append(count++).append(".` ")
-                            .append(info.title()).append("\n");
-                } else {
-                    sb.append("`").append(count++).append(".` ")
-                            .append(track.getInfo().title).append("\n");
-                }
-            }
-        }
+        Button newPrevButton = Button.primary("queue:prev:" + newPage, "Anterior")
+                .withDisabled(newPage == 1);
+        Button newNextButton = Button.primary("queue:next:" + newPage, "Siguiente")
+                .withDisabled(newPage >= totalPages);
 
-        event.getChannel().sendMessage(sb.toString()).queue();
+        event.editMessageEmbeds(newEmbed)
+                .setActionRow(newPrevButton, newNextButton)
+                .queue();
     }
 
     @Override

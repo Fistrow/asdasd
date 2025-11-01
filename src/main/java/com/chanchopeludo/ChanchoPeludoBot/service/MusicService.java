@@ -2,6 +2,7 @@ package com.chanchopeludo.ChanchoPeludoBot.service;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public interface MusicService {
@@ -97,4 +98,6 @@ public interface MusicService {
      * @param event El evento del mensaje que inició la acción (ej: "c!nowplaying" o "c!np").
      */
     void nowPlaying(MessageReceivedEvent event);
+
+    void handleQueueButton(ButtonInteractionEvent event);
 }
