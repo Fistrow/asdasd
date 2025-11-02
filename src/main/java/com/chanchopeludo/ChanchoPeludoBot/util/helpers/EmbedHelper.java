@@ -5,9 +5,11 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.SelfUser;
 
 import java.util.List;
 
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.CommandConstants.MSG_HELP_FOOTER;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
 
 public class EmbedHelper {
@@ -86,6 +88,37 @@ public class EmbedHelper {
         eb.setColor(0x1ED760);
 
         eb.addField("Progreso", String.format("%s / %s", currentPosition, duration), true);
+
+        return eb.build();
+    }
+
+    public static MessageEmbed buildHelpEmbed(SelfUser botUser, int page, int totalPages) {
+        EmbedBuilder eb = new EmbedBuilder();
+
+        eb.setTitle("📜 Lista de comandos");
+        eb.setDescription("El prefijo para utilizar el bot es `c!`.");
+
+        eb.setThumbnail(botUser.getEffectiveAvatarUrl());
+        eb.setColor(0x3498DB);
+
+        switch (page) {
+            case 1:
+                eb.setDescription("** Comandos de música **");
+                eb.addField("🎶 Comandos de Música",
+                        "`play (o p)`: Reproduce o añade una canción.\n" +
+                                "`skip`: Salta a la siguiente canción.\n" +
+                                "`stop`: Detiene la música y limpia la cola.\n" +
+                                "`pause`: Pausa la reproducción.\n" +
+                                "`resume`: Reanuda la reproducción.\n" +
+                                "`queue`: Muestra la cola de canciones.\n" +
+                                "`nowplaying (o np)`: Muestra la canción actual.\n" +
+                                "`shuffle`: Mezcla la cola.\n" +
+                                "`volume`: Ajusta el volumen (ej. `c!volume 50`).",
+                        false);
+                break;
+        }
+
+        eb.setFooter(String.format(MSG_HELP_FOOTER, page, totalPages), botUser.getEffectiveAvatarUrl());
 
         return eb.build();
     }

@@ -14,4 +14,6 @@ public final class CommandConstants {
 
     // Mensajes para SlashCommand
     public static final String MSG_SLASH_NO_VOICE = "¡Debes estar en un canal de voz para usar este comando!";
+
+    public static final String MSG_HELP_FOOTER = "Página %d / %d";
 }
