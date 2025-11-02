@@ -2,6 +2,7 @@ package com.chanchopeludo.ChanchoPeludoBot.util.helpers;
 
 import com.chanchopeludo.ChanchoPeludoBot.dto.VideoInfo;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 
@@ -47,6 +48,44 @@ public class EmbedHelper {
 
         eb.setFooter(String.format(MSG_QUEUE_FOOTER, page, totalPages, queueList.size()));
         eb.setColor(0x1DB954);
+
+        return eb.build();
+    }
+
+    private static String formatDuration(long milliseconds) {
+        long seconds = (milliseconds / 1000) % 60;
+        long minutes = (milliseconds / (1000 * 60)) % 60;
+        long hours = (milliseconds / (1000 * 60 * 60)) % 24;
+
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            return String.format("%d:%02d", minutes, seconds);
+        }
+    }
+
+    public static MessageEmbed buildNowPlayingEmbed(AudioTrack currentTrack) {
+        AudioTrackInfo info = currentTrack.getInfo();
+
+        String title;
+        if (currentTrack.getUserData() instanceof VideoInfo customInfo) {
+            title = customInfo.title();
+        } else {
+            title = info.title;
+        }
+
+        String duration = formatDuration(info.length);
+        String currentPosition = formatDuration(currentTrack.getPosition());
+
+        EmbedBuilder eb = new EmbedBuilder();
+
+        eb.setTitle(MSG_NOW_PLAYING);
+
+        eb.setDescription("**" + title + "**");
+
+        eb.setColor(0x1ED760);
+
+        eb.addField("Progreso", String.format("%s / %s", currentPosition, duration), true);
 
         return eb.build();
     }

@@ -36,6 +36,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
+import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildNowPlayingEmbed;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildQueueEmbed;
 
 @Service
@@ -257,18 +258,9 @@ public class MusicServiceImp implements MusicService {
             return;
         }
 
-        String title;
+        MessageEmbed embed = buildNowPlayingEmbed(currentTrack);
 
-        if (currentTrack.getUserData() instanceof VideoInfo customInfo) {
-            title = customInfo.title();
-        } else {
-
-            title = currentTrack.getInfo().title;
-        }
-
-        String message = MSG_NOW_PLAYING + " `" + title + "`";
-
-        event.getChannel().sendMessage(message).queue();
+        event.getChannel().sendMessageEmbeds(embed).queue();
     }
 
     @Override
