@@ -13,13 +13,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "server")
+@Table(name = "servers")
 public class ServerEntity {
 
     @Id
-    private Long id;
+    @Column(name = "id_server")
+    private String idServer;
 
     @NotBlank
+    @Column(name = "guild_name")
     private String guild_name;
 
     @NotBlank

@@ -2,6 +2,7 @@ package com.chanchopeludo.ChanchoPeludoBot.listeners;
 
 import com.chanchopeludo.ChanchoPeludoBot.service.CommandManager;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
+import com.chanchopeludo.ChanchoPeludoBot.service.UserService;
 import jakarta.annotation.PostConstruct;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -12,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.springframework.stereotype.Component;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.AppConstants.DEFAULT_PREFIX;
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.XpConstants.XP_PER_MESSAGE;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildHelpEmbed;
 
 @Component
@@ -20,11 +22,13 @@ public class DiscordCommandListener extends ListenerAdapter {
     private final JDA jda;
     private final CommandManager commandManager;
     private final MusicService musicService;
+    private final UserService userService;
 
-    public DiscordCommandListener(JDA jda, CommandManager commandManager, MusicService musicService) {
+    public DiscordCommandListener(JDA jda, CommandManager commandManager, MusicService musicService, UserService userService) {
         this.jda = jda;
         this.commandManager = commandManager;
         this.musicService = musicService;
+        this.userService = userService;
     }
 
     @PostConstruct
@@ -38,6 +42,14 @@ public class DiscordCommandListener extends ListenerAdapter {
             return;
         }
 
+        String userId = event.getAuthor().getId();
+        String serverId = event.getGuild().getId();
+
+        userService.addExp(userId, serverId, XP_PER_MESSAGE);
+
+        if (!event.getMessage().getContentRaw().startsWith(DEFAULT_PREFIX)) {
+            return;
+        }
         commandManager.handle(event);
     }
 

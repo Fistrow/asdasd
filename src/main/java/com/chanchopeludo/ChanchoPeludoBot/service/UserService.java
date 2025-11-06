@@ -13,7 +13,7 @@ public interface UserService {
      * @param serverId El ID del servidor de Discord
      * @param xpToAdd  La cantidad de experiencia a añadir
      */
-    void addExp(long userId, long serverId, long xpToAdd);
+    void addExp(String userId, String serverId, long xpToAdd);
 
     /**
      * Obtener nivel y expereciencia de un usuario en el servidor.
@@ -21,7 +21,7 @@ public interface UserService {
      * @param userId   El ID del usuario de Discord
      * @param serverId El ID del servidor de Discord
      */
-    int getLevel(long userId, long serverId);
+    int getLevel(String userId, String serverId);
 
     /**
      * Obtener todos los datos de tu perfil del servidor.
@@ -29,6 +29,6 @@ public interface UserService {
      * @param userId   El ID del usuario de Discord
      * @param serverId El ID del servidor de Discord
      */
-    Optional<UserServerStatsEntity> getProfile(long userId, long serverId);
+    Optional<UserServerStatsEntity> getProfile(String userId, String serverId);
 
 }

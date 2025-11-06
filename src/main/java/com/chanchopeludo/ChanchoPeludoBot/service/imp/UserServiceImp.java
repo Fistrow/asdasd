@@ -31,24 +31,25 @@ public class UserServiceImp implements UserService {
     }
 
     @Override
-    public Optional<UserServerStatsEntity> getProfile(long userId, long serverId) {
+    public Optional<UserServerStatsEntity> getProfile(String userId, String serverId) {
         UserServerStatsId statsId = new UserServerStatsId(userId, serverId);
         return statsRepository.findById(statsId);
     }
 
     @Override
     @Transactional
-    public void addExp(long userId, long serverId, long xpToAdd) {
+    public void addExp(String userId, String serverId, long xpToAdd) {
         UserEntity user = userRepository.findById(userId)
                 .orElse(UserEntity.builder()
-                        .id(userId)
+                        .idUser(userId)
                         .username(DEFAULT_USERNAME)
+                        .profile_image_url(null)
                         .build());
         userRepository.save(user);
 
         ServerEntity server = serverRepository.findById(serverId)
                 .orElse(ServerEntity.builder()
-                        .id(serverId)
+                        .idServer(serverId)
                         .guild_name(DEFAULT_GUILD_NAME)
                         .prefix(DEFAULT_PREFIX)
                         .build());
@@ -75,7 +76,7 @@ public class UserServiceImp implements UserService {
     }
 
     @Override
-    public int getLevel(long userId, long serverId) {
+    public int getLevel(String userId, String serverId) {
         UserServerStatsId statsId = new UserServerStatsId(userId, serverId);
         return statsRepository.findById(statsId)
                 .map(UserServerStatsEntity::getLevel)

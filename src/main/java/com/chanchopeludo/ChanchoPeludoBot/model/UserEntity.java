@@ -12,14 +12,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class UserEntity {
 
     @Id
-    private Long id;
+    @Column(name = "id_user")
+    private String idUser;
 
     @NotBlank
     private String username;
 
+    @Column(name = "profile_image_url")
     private String profile_image_url;
 }

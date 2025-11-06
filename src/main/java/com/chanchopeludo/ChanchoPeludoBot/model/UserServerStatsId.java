@@ -10,6 +10,6 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserServerStatsId implements Serializable {
-    private Long user;
-    private Long server;
+    private String user;
+    private String server;
 }

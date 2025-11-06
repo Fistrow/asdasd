@@ -22,8 +22,8 @@ public class PerfilCommand implements Command {
 
     @Override
     public void handle(MessageReceivedEvent event, List<String> args) {
-        long userId = event.getAuthor().getIdLong();
-        long serverId = event.getGuild().getIdLong();
+        String userId = event.getAuthor().getId();
+        String serverId = event.getGuild().getId();
         Optional<UserServerStatsEntity> optionalProfile = userService.getProfile(userId, serverId);
 
         if (optionalProfile.isPresent()) {
