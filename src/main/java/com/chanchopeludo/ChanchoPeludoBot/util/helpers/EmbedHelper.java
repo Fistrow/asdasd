@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.SelfUser;
 
+import java.awt.*;
 import java.util.List;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.CommandConstants.MSG_HELP_FOOTER;
@@ -121,5 +122,35 @@ public class EmbedHelper {
         eb.setFooter(String.format(MSG_HELP_FOOTER, page, totalPages), botUser.getEffectiveAvatarUrl());
 
         return eb.build();
+    }
+
+    /**
+     * Crea un Embed de éxito genérico.
+     *
+     * @param title   El título del embed.
+     * @param message El mensaje de descripción.
+     * @return El MessageEmbed construido.
+     */
+    public static MessageEmbed buildSuccessEmbed(String title, String message) {
+        return new EmbedBuilder()
+                .setTitle("✅ " + title)
+                .setDescription(message)
+                .setColor(new Color(0x4CAF50))
+                .build();
+    }
+
+    /**
+     * Crea un Embed de error genérico.
+     *
+     * @param title   El título del error.
+     * @param message El mensaje de descripción (ej. la excepción).
+     * @return El MessageEmbed construido.
+     */
+    public static MessageEmbed buildErrorEmbed(String title, String message) {
+        return new EmbedBuilder()
+                .setTitle("⚠️ " + title)
+                .setDescription(message)
+                .setColor(Color.RED)
+                .build();
     }
 }
