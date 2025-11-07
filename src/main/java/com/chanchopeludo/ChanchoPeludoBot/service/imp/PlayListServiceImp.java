@@ -9,7 +9,6 @@ import com.chanchopeludo.ChanchoPeludoBot.repository.PlayListRepository;
 import com.chanchopeludo.ChanchoPeludoBot.repository.ServerRepository;
 import com.chanchopeludo.ChanchoPeludoBot.repository.UserRepository;
 import com.chanchopeludo.ChanchoPeludoBot.service.PlayListService;
-import com.chanchopeludo.ChanchoPeludoBot.service.SpotifyService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -24,14 +23,12 @@ public class PlayListServiceImp implements PlayListService {
     private final PlayListItemRepository playListItemRepository;
     private final UserRepository userRepository;
     private final ServerRepository serverRepository;
-    private final SpotifyService spotifyService;
 
-    public PlayListServiceImp(PlayListRepository playListRepository, PlayListItemRepository playListItemRepository, UserRepository userRepository, ServerRepository serverRepository, SpotifyService spotifyService) {
+    public PlayListServiceImp(PlayListRepository playListRepository, PlayListItemRepository playListItemRepository, UserRepository userRepository, ServerRepository serverRepository) {
         this.playListRepository = playListRepository;
         this.playListItemRepository = playListItemRepository;
         this.userRepository = userRepository;
         this.serverRepository = serverRepository;
-        this.spotifyService = spotifyService;
     }
 
     @Override
@@ -50,7 +47,7 @@ public class PlayListServiceImp implements PlayListService {
 
         PlayListEntity newPlayList = PlayListEntity.builder()
                 .name(name)
-                .is_public(true)
+                .is_public(false)
                 .server(server)
                 .creator(creator)
                 .build();
@@ -59,8 +56,22 @@ public class PlayListServiceImp implements PlayListService {
     }
 
     @Override
-    public void addTrackToPlayList(String playlistName, String serverId, String trackUrlQuery) {
+    @Transactional
+    public void addTrackToPlayList(String playlistName, String serverId, String title, String trackIdentifier) {
+        ServerEntity server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new EntityNotFoundException("No se encontró el servidor!"));
 
+        PlayListEntity playlist = playListRepository.findByNameAndServer(playlistName, server)
+                .orElseThrow(() -> new EntityNotFoundException("No se encontró la playlist '" + playlistName + "'."));
+
+        PlayListItemEntity newTrack = PlayListItemEntity.builder()
+                .title(title)
+                .track_Identifier(trackIdentifier)
+                .playlist(playlist)
+                .build();
+
+        playlist.getItems().add(newTrack);
+        playListRepository.save(playlist);
     }
 
     @Override

@@ -6,13 +6,18 @@ public final class PlayListConstants {
 
     // Mensajes de uso
     public static final String PLAYLIST_USAGE_CREATE = "Uso correcto: `c!playlist create <Nombre>`";
+    public static final String PLAYLIST_USAGE_ADD = "Uso correcto: `c!playlist add <Nombre-Playlist> <URL o Búsqueda>`";
 
     //Títulos para embeds
     public static final String TITLE_ERROR_PLAYLIST_CREATE = "Error al crear playlist";
     public static final String TITLE_PLAYLIST_CREATED = "Playlist Creada";
+    public static final String TITLE_TRACK_ADDED = "Canción añadida";
+    public static final String TITLE_ERROR_PLAYLIST_ADD = "Error al añadir canción";
 
     // Descripciones para embeds
     public static final String DESC_PLAYLIST_CREATED = "La playlist **%s** ha sido creada con éxito.";
+    public static final String DESC_TRACK_ADDED = "Se añadió **%s** a la playlist **%s**.";
+
 
 
 }

@@ -9,7 +9,7 @@ public interface PlayListService {
 
     void createPlayList(String name, String serverId, String creatorId);
 
-    void addTrackToPlayList(String playlistName, String serverId, String trackUrlQuery);
+    void addTrackToPlayList(String playlistName, String serverId, String title, String trackIdentifier);
 
     void deletePlayList(String name, String serverId);
 
