@@ -17,9 +17,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'com.mysql:mysql-connector-j:8.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'net.dv8tion:JDA:5.0.0-beta.20'
+	implementation 'net.dv8tion:JDA:5.0.0-beta.24'
 
-	implementation 'com.github.walkyst:lavaplayer-fork:1.4.3'
+	implementation 'dev.arbjerg:lavaplayer:2.2.2'
 	implementation 'com.google.code.gson:gson:2.11.0'
 	implementation 'se.michaelthelin.spotify:spotify-web-api-java:9.3.0'
 
