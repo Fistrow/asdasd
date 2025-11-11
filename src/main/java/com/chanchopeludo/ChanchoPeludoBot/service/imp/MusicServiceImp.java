@@ -1,6 +1,8 @@
 package com.chanchopeludo.ChanchoPeludoBot.service.imp;
 
+import com.chanchopeludo.ChanchoPeludoBot.dto.AudioTrackInfo;
 import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
+import com.chanchopeludo.ChanchoPeludoBot.dto.QueueState;
 import com.chanchopeludo.ChanchoPeludoBot.music.GuildMusicManager;
 import com.chanchopeludo.ChanchoPeludoBot.music.TrackScheduler;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
@@ -26,11 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.GenericConstants.SERVER_NOT_FOUND;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
@@ -96,15 +96,18 @@ public class MusicServiceImp implements MusicService {
                             play(guild, musicManager, track, voiceChannel);
                             futureResult.complete(new PlayResult(true, MSG_TRACK_ADDED + info.title() + "**"));
                         }
+
                         @Override
                         public void playlistLoaded(AudioPlaylist playlist) {
                             play(guild, musicManager, playlist.getTracks().get(0), voiceChannel);
                             futureResult.complete(new PlayResult(true, MSG_PLAYLIST_ADDED + playlist.getName() + "**"));
                         }
+
                         @Override
                         public void noMatches() {
                             futureResult.complete(new PlayResult(false, MSG_NO_MATCHES_URL));
                         }
+
                         @Override
                         public void loadFailed(FriendlyException exception) {
                             futureResult.complete(new PlayResult(false, MSG_LOAD_FAILED + exception.getMessage()));
@@ -125,7 +128,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult skipTrack(long guildId) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -143,7 +146,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult stop(long guildId) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -159,7 +162,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult pause(long guildId) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -176,7 +179,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult resume(long guildId) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -193,7 +196,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult volume(long guildId, int valueVolume) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -210,7 +213,7 @@ public class MusicServiceImp implements MusicService {
     public PlayResult shuffle(long guildId) {
         Guild guild = jda.getGuildById(guildId);
 
-        if(guild == null){
+        if (guild == null) {
             return new PlayResult(false, SERVER_NOT_FOUND);
         }
 
@@ -227,80 +230,27 @@ public class MusicServiceImp implements MusicService {
     }
 
     @Override
-    public void nowPlaying(MessageReceivedEvent event) {
-        GuildMusicManager musicManager = getGuildAudioPlayer(event.getGuild());
-        AudioTrack currentTrack = musicManager.getPlayer().getPlayingTrack();
+    public QueueState getQueueState(long guildId) {
+        Guild guild = jda.getGuildById(guildId);
 
-        if (currentTrack == null) {
-            event.getChannel().sendMessage(MSG_NOTHING_PLAYING).queue();
-            return;
+        if (guild == null) {
+            return new QueueState(null, 0, List.of());
         }
 
-        MessageEmbed embed = buildNowPlayingEmbed(currentTrack);
+        GuildMusicManager musicManager = getGuildAudioPlayer(guild);
 
-        event.getChannel().sendMessageEmbeds(embed).queue();
-    }
+        AudioTrack nowPlayingTrack = musicManager.getPlayer().getPlayingTrack();
 
-    @Override
-    public void showQueue(MessageReceivedEvent event) {
-        GuildMusicManager musicManager = getGuildAudioPlayer(event.getGuild());
-        TrackScheduler scheduler = musicManager.getScheduler();
-        AudioTrack currentTrack = musicManager.getPlayer().getPlayingTrack();
+        AudioTrackInfo nowPlayingDto = AudioTrackInfo.fromAudioTrack(nowPlayingTrack);
 
-        if (scheduler.getQueue().isEmpty() && currentTrack == null) {
-            event.getChannel().sendMessage(MSG_QUEUE_EMPTY).queue();
-            return;
-        }
+        long position = (nowPlayingTrack != null) ? nowPlayingTrack.getPosition() : 0;
 
-        List<AudioTrack> queueList = new ArrayList<>(scheduler.getQueue());
+        List<AudioTrackInfo> queueDtoList = musicManager.getScheduler().getQueue().stream()
+                .map(AudioTrackInfo::fromAudioTrack)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-        int itemsPerPage = 10;
-        int totalPages = (int) Math.ceil((double) queueList.size() / itemsPerPage);
-        if (totalPages == 0) totalPages = 1;
-
-        MessageEmbed embed = buildQueueEmbed(currentTrack, queueList, 1, totalPages, itemsPerPage);
-
-        Button prevButton = Button.primary("queue:prev:1", "Anterior").withDisabled(true);
-        Button nextButton = Button.primary("queue:next:1", "Siguiente").withDisabled(totalPages <= 1);
-
-        event.getChannel().sendMessageEmbeds(embed)
-                .setActionRow(prevButton, nextButton)
-                .queue();
-    }
-
-    @Override
-    public void handleQueueButton(ButtonInteractionEvent event) {
-        String[] idParts = event.getComponentId().split(":");
-
-        String action = idParts[1]; // "prev" o "next"
-        int currentPage = Integer.parseInt(idParts[2]);
-
-        GuildMusicManager musicManager = getGuildAudioPlayer(event.getGuild());
-        TrackScheduler scheduler = musicManager.getScheduler();
-        List<AudioTrack> queueList = new ArrayList<>(scheduler.getQueue());
-        AudioTrack playingTrack = musicManager.getPlayer().getPlayingTrack();
-
-        int itemsPerPage = 10;
-        int totalPages = (int) Math.ceil((double) queueList.size() / itemsPerPage);
-        if (totalPages == 0) totalPages = 1;
-
-        int newPage = currentPage;
-        if (action.equals("next")) {
-            newPage = Math.min(currentPage + 1, totalPages);
-        } else if (action.equals("prev")) {
-            newPage = Math.max(currentPage - 1, 1);
-        }
-
-        MessageEmbed newEmbed = buildQueueEmbed(playingTrack, queueList, newPage, totalPages, itemsPerPage);
-
-        Button newPrevButton = Button.primary("queue:prev:" + newPage, "Anterior")
-                .withDisabled(newPage == 1);
-        Button newNextButton = Button.primary("queue:next:" + newPage, "Siguiente")
-                .withDisabled(newPage >= totalPages);
-
-        event.editMessageEmbeds(newEmbed)
-                .setActionRow(newPrevButton, newNextButton)
-                .queue();
+        return new QueueState(nowPlayingDto, position, queueDtoList);
     }
 
     @Override
@@ -325,17 +275,22 @@ public class MusicServiceImp implements MusicService {
                             future.complete(new PlayResult(true, "Canción encolada: " + info.title()));
                         }
 
-                        @Override public void playlistLoaded(AudioPlaylist audioPlaylist) {
+                        @Override
+                        public void playlistLoaded(AudioPlaylist audioPlaylist) {
                             for (AudioTrack track : audioPlaylist.getTracks()) {
                                 musicManager.getScheduler().queue(track);
                             }
                             future.complete(new PlayResult(true, "Playlist encolada: " + audioPlaylist.getName()));
                         }
-                        @Override public void noMatches() {
+
+                        @Override
+                        public void noMatches() {
                             logger.warn("queueTrack no encontró coincidencias para: {}", trackUrl);
                             future.complete(new PlayResult(false, "No se encontraron coincidencias."));
                         }
-                        @Override public void loadFailed(FriendlyException e) {
+
+                        @Override
+                        public void loadFailed(FriendlyException e) {
                             logger.error("Fallo al cargar la canción en queueTrack: {}", info.url(), e);
                             future.complete(new PlayResult(false, "Fallo al cargar la canción."));
                         }
@@ -387,11 +342,14 @@ public class MusicServiceImp implements MusicService {
                             }
                         }
 
-                        @Override public void noMatches() {
+                        @Override
+                        public void noMatches() {
                             logger.warn("playTrackSilently no encontró coincidencias para: {}", trackUrl);
                             future.complete(new PlayResult(false, "No se encontraron coincidencias."));
                         }
-                        @Override public void loadFailed(FriendlyException exception) {
+
+                        @Override
+                        public void loadFailed(FriendlyException exception) {
                             logger.error("playTrackSilently falló al cargar: {}", trackUrl, exception);
                             future.complete(new PlayResult(false, "Fallo al cargar la canción."));
                         }

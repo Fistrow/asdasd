@@ -1,8 +1,7 @@
 package com.chanchopeludo.ChanchoPeludoBot.service;
 
 import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import com.chanchopeludo.ChanchoPeludoBot.dto.QueueState;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -51,11 +50,12 @@ public interface MusicService {
     PlayResult resume(long guildId);
 
     /**
-     * Muestra la lista de reproducciones de canciones.
+     * Obtiene el estado completo de la cola (canción actual y lista de espera).
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!queue").
+     * @param guildId  ID del servidor (Guild).
+     * @return Un objeto QueueState con toda la información de la cola.
      */
-    void showQueue(MessageReceivedEvent event);
+    QueueState getQueueState(long guildId);
 
     /**
      * Busca y añade una canción a la cola de forma silenciosa (sin enviar mensajes al canal).
@@ -95,12 +95,4 @@ public interface MusicService {
      */
     PlayResult shuffle(long guildId);
 
-    /**
-     * Muestra que canción se encuentra reproduciendo en este momento.
-     *
-     * @param event El evento del mensaje que inició la acción (ej: "c!nowplaying" o "c!np").
-     */
-    void nowPlaying(MessageReceivedEvent event);
-
-    void handleQueueButton(ButtonInteractionEvent event);
 }

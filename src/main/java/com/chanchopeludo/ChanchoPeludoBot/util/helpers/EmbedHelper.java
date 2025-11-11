@@ -1,8 +1,8 @@
 package com.chanchopeludo.ChanchoPeludoBot.util.helpers;
 
-import com.chanchopeludo.ChanchoPeludoBot.dto.VideoInfo;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.chanchopeludo.ChanchoPeludoBot.dto.AudioTrackInfo;
+import com.chanchopeludo.ChanchoPeludoBot.dto.QueueState;
+
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.SelfUser;
@@ -15,13 +15,15 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*
 
 public class EmbedHelper {
 
-    public static MessageEmbed buildQueueEmbed(AudioTrack playingTrack, List<AudioTrack> queueList, int page, int totalPages, int itemsPerPage) {
+    public static MessageEmbed buildQueueEmbed(QueueState state, int page, int itemsPerPage) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(MSG_QUEUE_TITLE);
 
-        if (playingTrack != null && playingTrack.getUserData() instanceof VideoInfo) {
-            VideoInfo info = (VideoInfo) playingTrack.getUserData();
-            eb.addField(MSG_NOW_PLAYING, String.format("`%s`", info.title()), false);
+        AudioTrackInfo playingTrack = state.getNowPlaying().orElse(null);
+        List<AudioTrackInfo> queueList = state.queue();
+
+        if (playingTrack != null) {
+            eb.addField(MSG_NOW_PLAYING, String.format("`%s`", playingTrack.title()), false);
         }
 
         if (queueList.isEmpty()) {
@@ -36,18 +38,15 @@ public class EmbedHelper {
                 StringBuilder queueString = new StringBuilder();
 
                 for (int i = start; i < end; i++) {
-                    AudioTrack track = queueList.get(i);
-                    String title;
-                    if (track.getUserData() instanceof VideoInfo) {
-                        title = ((VideoInfo) track.getUserData()).title();
-                    } else {
-                        title = track.getInfo().title;
-                    }
-                    queueString.append(String.format("`%d.` %s\n", (i + 1), title));
+                    AudioTrackInfo track = queueList.get(i);
+                    queueString.append(String.format("`%d.` %s\n", (i + 1), track.title()));
                 }
                 eb.addField(MSG_QUEUE_NEXT_UP, queueString.toString(), false);
             }
         }
+
+        int totalPages = (int) Math.ceil((double) queueList.size() / itemsPerPage);
+        if (totalPages == 0) totalPages = 1;
 
         eb.setFooter(String.format(MSG_QUEUE_FOOTER, page, totalPages, queueList.size()));
         eb.setColor(0x1DB954);
@@ -67,28 +66,16 @@ public class EmbedHelper {
         }
     }
 
-    public static MessageEmbed buildNowPlayingEmbed(AudioTrack currentTrack) {
-        AudioTrackInfo info = currentTrack.getInfo();
-
-        String title;
-        if (currentTrack.getUserData() instanceof VideoInfo customInfo) {
-            title = customInfo.title();
-        } else {
-            title = info.title;
-        }
-
-        String duration = formatDuration(info.length);
-        String currentPosition = formatDuration(currentTrack.getPosition());
+    public static MessageEmbed buildNowPlayingEmbed(AudioTrackInfo currentTrack, long currentPosition) {
+        String title = currentTrack.title();
+        String duration = formatDuration(currentTrack.durationMs());
+        String currentPosStr = formatDuration(currentPosition);
 
         EmbedBuilder eb = new EmbedBuilder();
-
         eb.setTitle(MSG_NOW_PLAYING);
-
-        eb.setDescription("**" + title + "**");
-
+        eb.setDescription(String.format("**[%s](%s)**", title, currentTrack.url()));
         eb.setColor(0x1ED760);
-
-        eb.addField("Progreso", String.format("%s / %s", currentPosition, duration), true);
+        eb.addField("Progreso", String.format("%s / %s", currentPosStr, duration), true);
 
         return eb.build();
     }
