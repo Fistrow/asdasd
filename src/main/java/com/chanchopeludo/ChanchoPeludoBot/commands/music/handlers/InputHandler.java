@@ -1,10 +1,11 @@
 package com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers;
 
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
+
+import java.util.function.Consumer;
 
 public interface InputHandler {
 
     boolean canHandle(String input);
 
-    void handle(MessageReceivedEvent event, String input);
-}
+    void handle(long guildId, long voiceChannelId, String input, Consumer<PlayResult> reply);}

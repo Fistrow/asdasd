@@ -24,22 +24,15 @@ public class CommandManagerImpl implements CommandManager {
 
     public CommandManagerImpl(List<Command> commandList) {
 
-        // 🔹 Comentado temporalmente para evitar errores por comandos duplicados
-        /*
         this.slashCommandMap = commandList.stream()
                 .collect(Collectors.toMap(Command::getName, command -> command));
-        */
-
-        this.slashCommandMap = new HashMap<>(); // vacío por ahora
 
         this.textCommandMap = new HashMap<>();
-
         for (Command command : commandList) {
             for (String name : command.getTextNames()) {
                 this.textCommandMap.put(name.toLowerCase(), command);
             }
         }
-
     }
 
     @Override
@@ -56,6 +49,7 @@ public class CommandManagerImpl implements CommandManager {
         }
     }
 
+    @Override
     public void handleSlash(SlashCommandInteractionEvent event) {
         Command command = slashCommandMap.get(event.getName());
         if (command != null) {

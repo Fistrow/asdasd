@@ -15,7 +15,7 @@ import java.util.List;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.GenericConstants.TITLE_ERROR_MISSING_ARGS;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.PlayListConstants.*;
 
-@Component
+//@Component
 public class PlayListCreateCommand implements Command {
     @Override
     public CommandData getSlashCommandData() {

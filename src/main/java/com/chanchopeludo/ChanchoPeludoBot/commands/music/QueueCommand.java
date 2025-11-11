@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.List;
 
-@Component
+//@Component
 public class QueueCommand implements Command {
     @Override
     public CommandData getSlashCommandData() {

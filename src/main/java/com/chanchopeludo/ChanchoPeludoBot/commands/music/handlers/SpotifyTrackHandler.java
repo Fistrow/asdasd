@@ -1,14 +1,15 @@
 package com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers;
 
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
 import com.chanchopeludo.ChanchoPeludoBot.service.SpotifyService;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import java.util.function.Consumer;
 
-import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_SPOTIFY_FAILURE;
-import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_SPOTIFY_PROCESSING;
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
+import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.ValidationHelper.isSpotifyTrack;
 
 @Component
 public class SpotifyTrackHandler implements InputHandler {
@@ -24,40 +25,30 @@ public class SpotifyTrackHandler implements InputHandler {
 
     @Override
     public boolean canHandle(String input) {
-        return input.contains("spotify.com") && input.contains("/track/");
+        // ¡Usamos el helper que creamos!
+        return isSpotifyTrack(input);
     }
 
     @Override
-    public void handle(MessageReceivedEvent event, String input) {
-        logger.info("Procesando URL de track de Spotify para el servidor '{}': {}", event.getGuild().getId(), input);
-
-        if (event.getMember().getVoiceState().getChannel() == null) {
-            return;
-        }
-
-        event.getChannel().sendMessage(MSG_SPOTIFY_PROCESSING).queue();
-
-        long guildId = event.getGuild().getIdLong();
-        long channelId = event.getMember().getVoiceState().getChannel().getIdLong();
+    public void handle(long guildId, long voiceChannelId, String input, Consumer<PlayResult> reply) {
+        logger.info("Procesando URL de track de Spotify para el servidor '{}': {}", guildId, input);
 
         spotifyService.getTrackFromUrlAsync(input).thenAccept(trackOptional -> {
             trackOptional.ifPresentOrElse(
                     track -> {
                         String finalInput = track.toYoutubeSearchQuery();
-                        logger.info("Servidor '{}': URL de Spotify buscada: {}", event.getGuild().getId(), finalInput);
+                        logger.info("Servidor '{}': URL de Spotify buscada: {}", guildId, finalInput);
 
-                        musicService.loadAndPlay(guildId, channelId, finalInput)
-                                .thenAccept(playResult -> {
-                                    event.getChannel().sendMessage(playResult.message()).queue();
-                                });
+                        musicService.loadAndPlay(guildId, voiceChannelId, finalInput)
+                                .thenAccept(reply);
                     },
                     () -> {
-                        event.getChannel().sendMessage(MSG_SPOTIFY_FAILURE).queue();
+                        reply.accept(new PlayResult(false, MSG_SPOTIFY_FAILURE));
                     }
             );
         }).exceptionally(ex -> {
             logger.error("Ocurrió una excepción al obtener la cancion para la URL: {}", input, ex);
-            event.getChannel().sendMessage("Error al procesar el track de Spotify: " + ex.getMessage()).queue();
+            reply.accept(new PlayResult(false, "Error al procesar el track de Spotify."));
             return null;
         });
     }

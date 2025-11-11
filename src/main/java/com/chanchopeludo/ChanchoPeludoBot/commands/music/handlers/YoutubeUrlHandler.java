@@ -1,12 +1,12 @@
 package com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers;
 
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.stereotype.Component;
+import java.util.function.Consumer;
 
-// ¡Importa tus constantes!
-import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.ValidationHelper.isUrl;
+import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.ValidationHelper.isYoutubeUrl;
 
 @Component
 public class YoutubeUrlHandler implements InputHandler{
@@ -19,24 +19,12 @@ public class YoutubeUrlHandler implements InputHandler{
 
     @Override
     public boolean canHandle(String input) {
-        return isUrl(input) && (input.contains("youtube.com") || input.contains("youtu.be"));
+        return isYoutubeUrl(input);
     }
 
     @Override
-    public void handle(MessageReceivedEvent event, String input) {
-
-        if (event.getMember().getVoiceState().getChannel() == null) {
-            return;
-        }
-
-        long guildId = event.getGuild().getIdLong();
-        long channelId = event.getMember().getVoiceState().getChannel().getIdLong();
-
-        event.getChannel().sendMessage(MSG_SEARCH_MUSIC).queue();
-
-        musicService.loadAndPlay(guildId, channelId, input)
-                .thenAccept(result -> {
-                    event.getChannel().sendMessage(result.message()).queue();
-                });
+    public void handle(long guildId, long voiceChannelId, String input, Consumer<PlayResult> reply) {
+        musicService.loadAndPlay(guildId, voiceChannelId, input)
+                .thenAccept(reply);
     }
 }

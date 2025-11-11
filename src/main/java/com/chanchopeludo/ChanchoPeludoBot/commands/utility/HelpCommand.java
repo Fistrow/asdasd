@@ -13,7 +13,7 @@ import java.util.List;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildHelpEmbed;
 
-@Component
+//@Component
 public class HelpCommand implements Command {
     @Override
     public CommandData getSlashCommandData() {

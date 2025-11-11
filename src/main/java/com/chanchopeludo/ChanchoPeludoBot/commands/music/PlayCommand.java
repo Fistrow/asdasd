@@ -2,6 +2,7 @@ package com.chanchopeludo.ChanchoPeludoBot.commands.music;
 
 import com.chanchopeludo.ChanchoPeludoBot.commands.Command;
 import com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers.InputHandler;
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -13,9 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
-import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_NOT_IN_VOICE_CHANNEL;
-import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_PLAY_USAGE;
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
 
 @Component
 public class PlayCommand implements Command {
@@ -28,7 +29,7 @@ public class PlayCommand implements Command {
 
     @Override
     public CommandData getSlashCommandData() {
-        OptionData option = new OptionData(OptionType.STRING, "cancion", "La URL o nombre de la canción", true);
+        OptionData option = new OptionData(OptionType.STRING, "url", "La URL o nombre de la canción", true);
         return Commands.slash(getName(), "Reproduce una canción o búsqueda")
                 .addOptions(option);
     }
@@ -36,8 +37,22 @@ public class PlayCommand implements Command {
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
 
-        //TODO: Por ahora, no funciona
-        event.reply(MSG_PLAY_USAGE).setEphemeral(true).queue();
+        final AudioChannel userChannel = event.getMember().getVoiceState().getChannel();
+        if(userChannel == null){
+            event.reply(MSG_NOT_IN_VOICE_CHANNEL).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long channelId = userChannel.getIdLong();
+        String input = event.getOption("url").getAsString();
+
+        event.deferReply().setContent(MSG_SEARCH_MUSIC).queue();
+
+        Consumer<PlayResult> reply = (result) ->
+                event.getHook().sendMessage(result.message()).queue();
+
+        handlePlayLogic(guildId, channelId, input, reply);
     }
 
     @Override
@@ -54,14 +69,29 @@ public class PlayCommand implements Command {
             return;
         }
 
+        long guildId = event.getGuild().getIdLong();
+        long channelId = userChannel.getIdLong();
         String input = String.join(" ", args);
+
+        event.getChannel().sendMessage(MSG_SEARCH_MUSIC).queue();
+
+        Consumer<PlayResult> responder = (result) ->
+                event.getChannel().sendMessage(result.message()).queue();
+
+        handlePlayLogic(guildId, channelId, input, responder);
+    }
+
+    private void handlePlayLogic(long guildId, long channelId, String input, Consumer<PlayResult> reply) {
 
         for (InputHandler handler : handlers) {
             if (handler.canHandle(input)) {
-                handler.handle(event, input);
+                handler.handle(guildId, channelId, input, reply);
+
                 return;
             }
         }
+
+        reply.accept(new PlayResult(false, "No se pudo procesar la entrada: " + input));
     }
 
     @Override

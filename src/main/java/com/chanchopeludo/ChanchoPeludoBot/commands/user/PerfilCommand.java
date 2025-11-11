@@ -15,7 +15,7 @@ import java.util.Optional;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.CommandConstants.MSG_PROFILE_NOT_FOUND;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.CommandConstants.MSG_PROFILE_TEMPLATE;
 
-@Component
+//@Component
 public class PerfilCommand implements Command {
     @Override
     public CommandData getSlashCommandData() {

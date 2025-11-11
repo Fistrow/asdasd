@@ -21,7 +21,7 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.constants.PlayListConstant
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildErrorEmbed;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildSuccessEmbed;
 
-@Component
+//@Component
 public class PlayListAddCommand implements Command {
     @Override
     public CommandData getSlashCommandData() {
