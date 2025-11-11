@@ -4,6 +4,8 @@ import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.stereotype.Component;
 
+// ¡Importa tus constantes!
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.ValidationHelper.isUrl;
 
 @Component
@@ -17,12 +19,24 @@ public class YoutubeUrlHandler implements InputHandler{
 
     @Override
     public boolean canHandle(String input) {
-        return isUrl(input) && input.contains("youtube.com");
+        return isUrl(input) && (input.contains("youtube.com") || input.contains("youtu.be"));
     }
 
     @Override
     public void handle(MessageReceivedEvent event, String input) {
-        musicService.loadAndPlayFromMessage(event, input);
 
+        if (event.getMember().getVoiceState().getChannel() == null) {
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long channelId = event.getMember().getVoiceState().getChannel().getIdLong();
+
+        event.getChannel().sendMessage(MSG_SEARCH_MUSIC).queue();
+
+        musicService.loadAndPlay(guildId, channelId, input)
+                .thenAccept(result -> {
+                    event.getChannel().sendMessage(result.message()).queue();
+                });
     }
 }

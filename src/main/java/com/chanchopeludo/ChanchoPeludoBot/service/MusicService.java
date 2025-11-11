@@ -1,27 +1,24 @@
 package com.chanchopeludo.ChanchoPeludoBot.service;
 
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface MusicService {
 
     /**
-     * Carga y reproduce una canción o playlist desde una URL.
+     * Carga y reproduce una canción o playlist
      *
-     * @param event    El evento del comando que inició la acción.
-     * @param trackUrl La URL de la canción a reproducir.
+     * @param guildId        ID del servidor (Guild).
+     * @param voiceChannelId ID del canal de voz al que conectarse.
+     * @param trackUrl       La URL de la canción a reproducir.
+     * @return Un CompletableFuture que nos devuelve un PlayResult
      */
-    void loadAndPlay(SlashCommandInteractionEvent event, String trackUrl);
-
-    /**
-     * Carga y reproduce una canción desde una URL usando un evento de mensaje de texto.
-     *
-     * @param event    El evento del mensaje que inició la acción (ej: "c!play").
-     * @param trackUrl La URL de la canción a reproducir.
-     */
-    void loadAndPlayFromMessage(MessageReceivedEvent event, String trackUrl);
+    CompletableFuture<PlayResult> loadAndPlay(long guildId, long voiceChannelId, String trackUrl);
 
     /**
      * Saltea la canción que se encuentra reproduciendo y comienza la siguiente en la cola.

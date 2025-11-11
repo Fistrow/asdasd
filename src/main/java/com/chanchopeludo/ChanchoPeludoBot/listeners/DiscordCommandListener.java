@@ -6,6 +6,7 @@ import com.chanchopeludo.ChanchoPeludoBot.service.UserService;
 import jakarta.annotation.PostConstruct;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -13,6 +14,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.springframework.stereotype.Component;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.AppConstants.DEFAULT_PREFIX;
+import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_SEARCH_MUSIC;
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.XpConstants.XP_PER_MESSAGE;
 import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildHelpEmbed;
 
@@ -37,6 +39,28 @@ public class DiscordCommandListener extends ListenerAdapter {
     }
 
     @Override
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (event.getName().equals("play")) {
+
+            if (event.getMember().getVoiceState().getChannel() == null) {
+                event.reply("Debes estar en un canal de voz para usar este comando.").setEphemeral(true).queue();
+                return;
+            }
+
+            long guildId = event.getGuild().getIdLong();
+            long channelId = event.getMember().getVoiceState().getChannel().getIdLong();
+            String url = event.getOption("cancion").getAsString();
+
+            event.deferReply().setContent(MSG_SEARCH_MUSIC).queue();
+
+            musicService.loadAndPlay(guildId, channelId, url)
+                    .thenAccept(result -> {
+                        event.getHook().sendMessage(result.message()).queue();
+                    });
+        }
+    }
+
+    @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (event.getAuthor().isBot() || !event.getMessage().getContentRaw().startsWith(DEFAULT_PREFIX)) {
             return;
@@ -47,9 +71,6 @@ public class DiscordCommandListener extends ListenerAdapter {
 
         userService.addExp(userId, serverId, XP_PER_MESSAGE);
 
-        if (!event.getMessage().getContentRaw().startsWith(DEFAULT_PREFIX)) {
-            return;
-        }
         commandManager.handle(event);
     }
 

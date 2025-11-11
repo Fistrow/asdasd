@@ -1,9 +1,11 @@
 package com.chanchopeludo.ChanchoPeludoBot.service.imp;
 
+import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
 import com.chanchopeludo.ChanchoPeludoBot.music.GuildMusicManager;
 import com.chanchopeludo.ChanchoPeludoBot.dto.VideoInfo;
 import com.chanchopeludo.ChanchoPeludoBot.music.TrackScheduler;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
+import com.chanchopeludo.ChanchoPeludoBot.service.VideoInfoService;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
@@ -13,11 +15,10 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import jakarta.annotation.PostConstruct;
-import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -25,14 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*;
@@ -43,12 +41,16 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.helpers.EmbedHelper.buildQ
 public class MusicServiceImp implements MusicService {
 
     private AudioPlayerManager playerManager;
+    private final VideoInfoService videoInfoService;
+    private final JDA jda;
     private final Map<Long, GuildMusicManager> musicManagers;
     private static final Logger logger = LoggerFactory.getLogger(MusicServiceImp.class);
 
 
-    public MusicServiceImp() {
+    public MusicServiceImp(VideoInfoService videoInfoService, JDA jda) {
         this.musicManagers = new HashMap<>();
+        this.videoInfoService = videoInfoService;
+        this.jda = jda;
     }
 
     @PostConstruct
@@ -68,113 +70,55 @@ public class MusicServiceImp implements MusicService {
         return musicManager;
     }
 
-    private VideoInfo getVideoInfo(String youtubeUrl) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp",
-                "--no-update",
-                "-4",
-                "--print", "%(title)s\n%(url)s",
-                "-f", "bestaudio[ext=m4a]/bestaudio/best",
-                youtubeUrl
-        );
-        Process process = pb.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String title = reader.readLine();
-            String directUrl = reader.readLine();
-            process.waitFor();
-            if (title == null || directUrl == null) {
-                return null;
-            }
-            return new VideoInfo(title, directUrl);
+    @Override
+    public CompletableFuture<PlayResult> loadAndPlay(long guildId, long voiceChannelId, String trackUrl) {
+        CompletableFuture<PlayResult> futureResult = new CompletableFuture<>();
+
+        Guild guild = jda.getGuildById(guildId);
+        if (guild == null) {
+            futureResult.complete(new PlayResult(false, "Error: No se encontró el servidor."));
+            return futureResult;
         }
-    }
+        AudioChannel voiceChannel = guild.getChannelById(AudioChannel.class, voiceChannelId);
+        if (voiceChannel == null) {
+            futureResult.complete(new PlayResult(false, "Error: No se encontró el canal de voz."));
+            return futureResult;
+        }
 
-    @Override
-    public void loadAndPlay(SlashCommandInteractionEvent event, String trackUrl) {
-        event.getHook().sendMessage(MSG_SEARCH_MUSIC).queue();
-        CompletableFuture.runAsync(() -> {
-            try {
-                final Guild guild = event.getGuild();
-                final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
-                final VideoInfo info = getVideoInfo(trackUrl);
-                if (info == null) {
-                    event.getHook().sendMessage(MSG_NO_MATCHES_URL).queue();
-                    return;
-                }
-                playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
-                    @Override
-                    public void trackLoaded(AudioTrack track) {
-                        track.setUserData(info);
-                        event.getHook().sendMessage(MSG_TRACK_ADDED + info.title() + "**").queue();
-                        play(guild, musicManager, track, event.getMember().getVoiceState().getChannel());
-                    }
+        final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
 
-                    @Override
-                    public void playlistLoaded(AudioPlaylist playlist) {
-                        AudioTrack firstTrack = playlist.getTracks().get(0);
-                        event.getHook().sendMessage(MSG_PLAYLIST_ADDED + playlist.getName() + "** (" + playlist.getTracks().size() + " canciones)").queue();
-                        play(guild, musicManager, firstTrack, event.getMember().getVoiceState().getChannel());
-                    }
-
-                    @Override
-                    public void noMatches() {
-                        event.getHook().sendMessage(MSG_NO_MATCHES_URL).queue();
-                    }
-
-                    @Override
-                    public void loadFailed(FriendlyException exception) {
-                        event.getHook().sendMessage(MSG_LOAD_FAILED + exception.getMessage()).queue();
-                    }
+        videoInfoService.getVideoInfo(trackUrl)
+                .thenAccept(info -> {
+                    playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            track.setUserData(info);
+                            play(guild, musicManager, track, voiceChannel);
+                            futureResult.complete(new PlayResult(true, MSG_TRACK_ADDED + info.title() + "**"));
+                        }
+                        @Override
+                        public void playlistLoaded(AudioPlaylist playlist) {
+                            play(guild, musicManager, playlist.getTracks().get(0), voiceChannel);
+                            futureResult.complete(new PlayResult(true, MSG_PLAYLIST_ADDED + playlist.getName() + "**"));
+                        }
+                        @Override
+                        public void noMatches() {
+                            futureResult.complete(new PlayResult(false, MSG_NO_MATCHES_URL));
+                        }
+                        @Override
+                        public void loadFailed(FriendlyException exception) {
+                            futureResult.complete(new PlayResult(false, MSG_LOAD_FAILED + exception.getMessage()));
+                        }
+                    });
+                })
+                .exceptionally(ex -> {
+                    Throwable cause = ex.getCause();
+                    logger.error("Error al buscar video", cause != null ? cause : ex);
+                    futureResult.complete(new PlayResult(false, MSG_YOUTUBE_ERROR + (cause != null ? cause.getMessage() : ex.getMessage())));
+                    return null;
                 });
-            } catch (IOException | InterruptedException e) {
-                logger.error("Error en loadAndPlay con yt-dlp para: '{}'", trackUrl, e);
-                event.getHook().sendMessage(MSG_YOUTUBE_ERROR + e.getMessage()).queue();
-            }
-        });
-    }
 
-    @Override
-    public void loadAndPlayFromMessage(MessageReceivedEvent event, String trackUrl) {
-        event.getChannel().sendMessage(MSG_SEARCH_MUSIC).queue();
-        CompletableFuture.runAsync(() -> {
-            try {
-                final Guild guild = event.getGuild();
-                final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
-                final VideoInfo info = getVideoInfo(trackUrl);
-                if (info == null) {
-                    event.getChannel().sendMessage(MSG_NO_MATCHES_URL).queue();
-                    return;
-                }
-                playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
-                    @Override
-                    public void trackLoaded(AudioTrack track) {
-                        track.setUserData(info);
-                        event.getChannel().sendMessage(MSG_TRACK_ADDED + info.title() + "**").queue();
-                        play(guild, musicManager, track, event.getMember().getVoiceState().getChannel());
-                    }
-
-                    @Override
-                    public void playlistLoaded(AudioPlaylist playlist) {
-                        AudioTrack firstTrack = playlist.getTracks().get(0);
-                        event.getChannel().sendMessage(MSG_PLAYLIST_ADDED + playlist.getName() + "** (" + playlist.getTracks().size() + " canciones)").queue();
-                        play(guild, musicManager, firstTrack, event.getMember().getVoiceState().getChannel());
-                    }
-
-                    @Override
-                    public void noMatches() {
-                        event.getChannel().sendMessage(MSG_NO_MATCHES_URL).queue();
-                    }
-
-                    @Override
-                    public void loadFailed(FriendlyException exception) {
-                        event.getChannel().sendMessage(MSG_LOAD_FAILED + exception.getMessage()).queue();
-                    }
-                });
-            } catch (IOException | InterruptedException e) {
-                logger.error("Error en loadAndPlayFromMessage con yt-dlp para: '{}'", trackUrl, e);
-                event.getChannel().sendMessage(MSG_YOUTUBE_ERROR + e.getMessage()).queue();
-            }
-        });
+        return futureResult;
     }
 
     @Override
@@ -327,86 +271,64 @@ public class MusicServiceImp implements MusicService {
 
     @Override
     public void queueTrack(Guild guild, String trackUrl) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
-                final VideoInfo info = getVideoInfo(trackUrl);
-                if (info == null) {
-                    logger.warn("queueTrack no encontró video para: {}", trackUrl);
-                    return;
-                }
-                playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
-                    @Override
-                    public void trackLoaded(AudioTrack track) {
-                        track.setUserData(info);
-                        musicManager.getScheduler().queue(track);
-                    }
+        final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
 
-                    @Override
-                    public void playlistLoaded(AudioPlaylist audioPlaylist) {
-                    }
+        videoInfoService.getVideoInfo(trackUrl)
+                .thenAccept(info -> {
+                    playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            track.setUserData(info);
+                            musicManager.getScheduler().queue(track);
+                        }
 
-                    @Override
-                    public void noMatches() {
-                        logger.warn("queueTrack no encontró coincidencias para: {}", trackUrl);
+                        @Override public void playlistLoaded(AudioPlaylist audioPlaylist) {}
+                        @Override public void noMatches() { logger.warn("queueTrack no encontró coincidencias para: {}", trackUrl); }
+                        @Override public void loadFailed(FriendlyException e) { logger.error("Fallo al cargar la canción en queueTrack: {}", info.url(), e); }
+                    });
+                })
+                .exceptionally(ex -> {
+                    logger.error("Error en queueTrack con yt-dlp para: '{}'", trackUrl, ex);
+                    if (ex.getCause() instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
                     }
-
-                    @Override
-                    public void loadFailed(FriendlyException e) {
-                        logger.error("Fallo al cargar la canción en queueTrack: {}", info.url(), e);
-                    }
+                    return null;
                 });
-            } catch (IOException | InterruptedException e) {
-                logger.error("Error en queueTrack con yt-dlp para: '{}'", trackUrl, e);
-                if (e instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
     }
 
     @Override
     public void playTrackSilently(MessageReceivedEvent event, String trackUrl) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                final Guild guild = event.getGuild();
-                final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
-                final VideoInfo info = getVideoInfo(trackUrl);
-                if (info == null) {
-                    logger.warn("playTrackSilently no encontró video para: {}", trackUrl);
-                    return;
-                }
-                playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
-                    @Override
-                    public void trackLoaded(AudioTrack track) {
-                        track.setUserData(info);
-                        play(guild, musicManager, track, event.getMember().getVoiceState().getChannel());
-                    }
+        final Guild guild = event.getGuild();
+        final GuildMusicManager musicManager = getGuildAudioPlayer(guild);
+        final AudioChannel voiceChannel = event.getMember().getVoiceState().getChannel();
 
-                    @Override
-                    public void playlistLoaded(AudioPlaylist playlist) {
-                        if (!playlist.getTracks().isEmpty()) {
-                            play(guild, musicManager, playlist.getTracks().get(0), event.getMember().getVoiceState().getChannel());
+        videoInfoService.getVideoInfo(trackUrl)
+                .thenAccept(info -> {
+                    playerManager.loadItemOrdered(musicManager, info.url(), new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            track.setUserData(info);
+                            play(guild, musicManager, track, voiceChannel);
                         }
-                    }
 
-                    @Override
-                    public void noMatches() {
-                        logger.warn("playTrackSilently no encontró coincidencias para: {}", trackUrl);
-                    }
+                        @Override
+                        public void playlistLoaded(AudioPlaylist playlist) {
+                            if (!playlist.getTracks().isEmpty()) {
+                                play(guild, musicManager, playlist.getTracks().get(0), voiceChannel);
+                            }
+                        }
 
-                    @Override
-                    public void loadFailed(FriendlyException exception) {
-                        logger.error("playTrackSilently falló al cargar: {}", trackUrl, exception);
+                        @Override public void noMatches() { logger.warn("playTrackSilently no encontró coincidencias para: {}", trackUrl); }
+                        @Override public void loadFailed(FriendlyException exception) { logger.error("playTrackSilently falló al cargar: {}", trackUrl, exception); }
+                    });
+                })
+                .exceptionally(ex -> {
+                    logger.error("Error en playTrackSilently con yt-dlp para: '{}'", trackUrl, ex);
+                    if (ex.getCause() instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
                     }
+                    return null;
                 });
-            } catch (IOException | InterruptedException e) {
-                logger.error("Error en playTrackSilently con yt-dlp para: '{}'", trackUrl, e);
-                if (e instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
     }
 
     private void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, AudioChannel voiceChannel) {

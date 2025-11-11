@@ -11,7 +11,7 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.M
 import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.MSG_SPOTIFY_PROCESSING;
 
 @Component
-public class SpotifyTrackHandler implements InputHandler{
+public class SpotifyTrackHandler implements InputHandler {
 
     private final MusicService musicService;
     private final SpotifyService spotifyService;
@@ -30,18 +30,34 @@ public class SpotifyTrackHandler implements InputHandler{
     @Override
     public void handle(MessageReceivedEvent event, String input) {
         logger.info("Procesando URL de track de Spotify para el servidor '{}': {}", event.getGuild().getId(), input);
+
+        if (event.getMember().getVoiceState().getChannel() == null) {
+            return;
+        }
+
         event.getChannel().sendMessage(MSG_SPOTIFY_PROCESSING).queue();
+
+        long guildId = event.getGuild().getIdLong();
+        long channelId = event.getMember().getVoiceState().getChannel().getIdLong();
+
         spotifyService.getTrackFromUrlAsync(input).thenAccept(trackOptional -> {
             trackOptional.ifPresentOrElse(
                     track -> {
                         String finalInput = track.toYoutubeSearchQuery();
                         logger.info("Servidor '{}': URL de Spotify buscada: {}", event.getGuild().getId(), finalInput);
-                        musicService.loadAndPlayFromMessage(event, finalInput);
+
+                        musicService.loadAndPlay(guildId, channelId, finalInput)
+                                .thenAccept(playResult -> {
+                                    event.getChannel().sendMessage(playResult.message()).queue();
+                                });
                     },
-                    () -> event.getChannel().sendMessage(MSG_SPOTIFY_FAILURE).queue()
+                    () -> {
+                        event.getChannel().sendMessage(MSG_SPOTIFY_FAILURE).queue();
+                    }
             );
         }).exceptionally(ex -> {
             logger.error("Ocurrió una excepción al obtener la cancion para la URL: {}", input, ex);
+            event.getChannel().sendMessage("Error al procesar el track de Spotify: " + ex.getMessage()).queue();
             return null;
         });
     }
