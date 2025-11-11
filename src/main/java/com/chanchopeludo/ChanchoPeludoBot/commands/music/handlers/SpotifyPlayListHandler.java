@@ -1,4 +1,4 @@
-package com.chanchopeludo.ChanchoPeludoBot.commands.handlers;
+package com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers;
 
 import com.chanchopeludo.ChanchoPeludoBot.dto.SpotifyTrack;
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
@@ -12,6 +12,16 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.constants.MusicConstants.*
 
 @Component
 public class SpotifyPlayListHandler implements InputHandler {
+    @Override
+    public boolean canHandle(String input) {
+        return false;
+    }
+
+    @Override
+    public void handle(MessageReceivedEvent event, String input) {
+
+    }
+    /*
     private final MusicService musicService;
     private final SpotifyService spotifyService;
     private static final Logger logger = LoggerFactory.getLogger(SpotifyTrackHandler.class);
@@ -53,4 +63,6 @@ public class SpotifyPlayListHandler implements InputHandler {
             return null;
         });
     }
+
+     */
 }

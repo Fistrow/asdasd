@@ -1,8 +1,11 @@
-package com.chanchopeludo.ChanchoPeludoBot.commands;
+package com.chanchopeludo.ChanchoPeludoBot.commands.user;
 
+import com.chanchopeludo.ChanchoPeludoBot.commands.Command;
 import com.chanchopeludo.ChanchoPeludoBot.model.UserServerStatsEntity;
 import com.chanchopeludo.ChanchoPeludoBot.service.UserService;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -14,7 +17,31 @@ import static com.chanchopeludo.ChanchoPeludoBot.util.constants.CommandConstants
 
 @Component
 public class PerfilCommand implements Command {
-    private final UserService userService;
+    @Override
+    public CommandData getSlashCommandData() {
+        return null;
+    }
+
+    @Override
+    public void executeSlash(SlashCommandInteractionEvent event) {
+
+    }
+
+    @Override
+    public void executeText(MessageReceivedEvent event, List<String> args) {
+
+    }
+
+    @Override
+    public String getName() {
+        return "";
+    }
+
+    @Override
+    public List<String> getTextNames() {
+        return List.of();
+    }
+    /*private final UserService userService;
 
     public PerfilCommand(UserService userService) {
         this.userService = userService;
@@ -40,4 +67,5 @@ public class PerfilCommand implements Command {
     public List<String> getNames() {
         return Arrays.asList("perfil");
     }
+     */
 }

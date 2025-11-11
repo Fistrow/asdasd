@@ -1,4 +1,4 @@
-package com.chanchopeludo.ChanchoPeludoBot.commands.handlers;
+package com.chanchopeludo.ChanchoPeludoBot.commands.music.handlers;
 
 import com.chanchopeludo.ChanchoPeludoBot.service.MusicService;
 import com.chanchopeludo.ChanchoPeludoBot.service.SpotifyService;

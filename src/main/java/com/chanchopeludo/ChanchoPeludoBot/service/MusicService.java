@@ -1,8 +1,6 @@
 package com.chanchopeludo.ChanchoPeludoBot.service;
 
 import com.chanchopeludo.ChanchoPeludoBot.dto.PlayResult;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
@@ -16,37 +14,41 @@ public interface MusicService {
      * @param guildId        ID del servidor (Guild).
      * @param voiceChannelId ID del canal de voz al que conectarse.
      * @param trackUrl       La URL de la canción a reproducir.
-     * @return Un CompletableFuture que nos devuelve un PlayResult
+     * @return Un CompletableFuture que nos retorna un PlayResult con el estado y mensaje
      */
     CompletableFuture<PlayResult> loadAndPlay(long guildId, long voiceChannelId, String trackUrl);
 
     /**
      * Saltea la canción que se encuentra reproduciendo y comienza la siguiente en la cola.
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!skip").
+     * @param guildId ID del servidor (Guild).
+     * @return Un PlayResult con el estado y mensaje
      */
-    void skipTrack(MessageReceivedEvent event);
+    PlayResult skipTrack(long guildId);
 
     /**
      * Detiene la reproducción de la música por completo, limpia la cola de canciones y desconecta al bot del canal de voz
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!stop").
+     * @param guildId ID del servidor (Guild).
+     * @return Un PlayResult con el estado y mensaje
      */
-    void stop(MessageReceivedEvent event);
+    PlayResult stop(long guildId);
 
     /**
      * Pausa la reproducción de la cancion actual.
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!pause").
+     * @param guildId ID del servidor (Guild).
+     * @return Un PlayResult con el estado y mensaje
      */
-    void pause(MessageReceivedEvent event);
+    PlayResult pause(long guildId);
 
     /**
      * Reanuda la reproducción de la canción que estaba en pausa.
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!resume").
+     * @param guildId ID del servidor (Guild).
+     * @return Un PlayResult con el estado y mensaje
      */
-    void resume(MessageReceivedEvent event);
+    PlayResult resume(long guildId);
 
     /**
      * Muestra la lista de reproducciones de canciones.
@@ -59,35 +61,39 @@ public interface MusicService {
      * Busca y añade una canción a la cola de forma silenciosa (sin enviar mensajes al canal).
      * procesar las canciones de una playlist en segundo plano sin generar spam.
      *
-     * @param guild    El servidor (Guild) donde se debe encolar la canción.
+     * @param guildId  ID del servidor (Guild).
      * @param trackUrl La URL de la cancion.
+     * @return Un CompletableFuture que nos retorna un PlayResult con el estado y mensaje
      */
-    void queueTrack(Guild guild, String trackUrl);
+    CompletableFuture<PlayResult> queueTrack(long guildId, String trackUrl);
 
     /**
      * Inicia la reproducción de una canción de forma silenciosa (sin enviar mensajes al canal).
      * Si ya hay una canción en reproducción, la añade a la cola. Usado para la primera canción de una playlist.
      *
-     * @param event    El evento es usado para obtener el canal de voz y el servidor.
-     * @param trackUrl La URL de la cancion.
+     * @param guildId        ID del servidor (Guild).
+     * @param voiceChannelId ID del canal de voz al que conectarse.
+     * @param trackUrl       La URL de la cancion.
+     * @return Un CompletableFuture que nos retorna un PlayResult con el estado y mensaje
      */
-    void playTrackSilently(MessageReceivedEvent event, String trackUrl);
+    CompletableFuture<PlayResult> playTrackSilently(long guildId, long voiceChannelId, String trackUrl);
 
     /**
      * Ajusta el volumen de reproducción del bot de música.
      *
-     * @param event       El evento del mensaje que inició la acción (ej: "c!volume 80").
+     * @param guildId     ID del servidor (Guild).
      * @param valueVolume El nuevo nivel de volumen, expresado como un porcentaje (0 a 100).
      *                    Un valor de 100 representa el volumen máximo, mientras que 0 silencia la reproducción.
      */
-    void volume(MessageReceivedEvent event, int valueVolume);
+    PlayResult volume(long guildId, int valueVolume);
 
     /**
      * Mezcla la cola de reproducción actual.
      *
-     * @param event El evento del mensaje que inició la acción (ej: "c!shuffle").
+     * @param guildId ID del servidor (Guild).
+     * @return Un PlayResult con el estado y mensaje
      */
-    void shuffle(MessageReceivedEvent event);
+    PlayResult shuffle(long guildId);
 
     /**
      * Muestra que canción se encuentra reproduciendo en este momento.
