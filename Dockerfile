@@ -7,7 +7,7 @@ COPY . .
 RUN chmod +x ./gradlew
 RUN ./gradlew build -x test
 
-# --- Etapa 2: Ejecución (Run) ---
+# --- Etapa 2: Ejecución (Run) --
 # Empezamos con una imagen limpia de Java 21 (jre)
 FROM eclipse-temurin:21-jre-jammy
 
