@@ -7,18 +7,21 @@ COPY . .
 RUN chmod +x ./gradlew
 RUN ./gradlew build -x test
 
-# --- Etapa 2: Ejecución (Run) --
+# --- Etapa 2: Ejecución (Run) ---
 # Empezamos con una imagen limpia de Java 21 (jre)
 FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
 # ---- ¡AQUÍ ESTÁ EL ARREGLO! ----
-# Instalamos las dependencias (ffmpeg/yt-dlp) en la imagen FINAL
+# 1. Instalamos ffmpeg y curl (para descargar)
+# 2. Descargamos la ÚLTIMA versión de yt-dlp y la hacemos ejecutable
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
-    yt-dlp && \
+    curl && \
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp && \
     rm -rf /var/lib/apt/lists/*
 # -------------------------------
 
