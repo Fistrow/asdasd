@@ -1,6 +1,0 @@
-[phases.setup]
-pkgs = [
-  "ffmpeg",
-  "yt-dlp",
-  "jdk21"
-]
