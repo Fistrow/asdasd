@@ -1,6 +1,6 @@
 [phases.setup]
 pkgs = [
   "ffmpeg",
-  "yt-dlp"
+  "yt-dlp",
   "jdk21"
 ]
