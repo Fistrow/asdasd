@@ -14,13 +14,13 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # ---- ¡AQUÍ ESTÁ EL ARREGLO! ----
-# 1. Instalamos ffmpeg y curl (para descargar)
-# 2. Descargamos la ÚLTIMA versión de yt-dlp y la hacemos ejecutable
+# 1. Instalamos ffmpeg y curl
+# 2. Descargamos el binario DE LINUX (yt-dlp_linux) y lo guardamos como "yt-dlp"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
     curl && \
-    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     rm -rf /var/lib/apt/lists/*
 # -------------------------------
